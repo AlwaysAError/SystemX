@@ -617,7 +617,7 @@ void gui::Render() noexcept
 	//Spoofing Tab
 	if (ImGui::BeginTabItem("Spoofing")) {
 		ImGui::Text("   ");
-		
+
 
 		if (ImGui::Button("Spoof MachineGuid")) {
 			std::wstring newGuid = GenerateRandomGUID();
@@ -625,15 +625,16 @@ void gui::Render() noexcept
 			currentGuid = GetMachineGuid(); // Refresh displayed GUID
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
+		ImGui::Separator();
 
 		// Button to trigger network reset
 		if (ImGui::Button("Clean IP and DNS")) {
 			RunNetworkReset();
 		}
-		ImGui::Text("After pressing the Clean IP and DNS button please wait for 10 seconds and ignore any CMD pop ups");
-		ImGui::Text("   ");
+		ImGui::Text("After pressing the Clean IP and DNS button please wait 10 seconds and ignore any CMD pop ups");
+		ImGui::Separator();
 
-		ImGui::Text("GPU Device ID: %s", deviceID.c_str());
+
 		ImGui::Text("Current GPU HWID: %s", currentHWID.c_str());
 
 		// Button to generate new HWID
@@ -661,14 +662,7 @@ void gui::Render() noexcept
 			showMessage = true;
 		}
 
-
-		// Display applied HWID below button
-		if (!appliedHWID.empty()) {
-			ImGui::Text("New HWID Applied: %s", appliedHWID.c_str());
-		}
-		if (showMessage) {
-			ImGui::Text("%s", message.c_str());
-		}
+		ImGui::Separator();
 
 		ImGui::Text("   ");
 		ImGui::Text("   ");
