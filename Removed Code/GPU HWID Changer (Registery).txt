@@ -1,0 +1,214 @@
+//------------------------------------------------------------------------------------------------------------------------------------------
+//GPU HWID Changer
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+// Function to generate a random HWID in PCI format
+std::string GenerateRandomHWID() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> hexDist(0, 15); // For hexadecimal digits (0-F)
+
+	auto hexChar = [](int n) -> char {
+		return n < 10 ? '0' + n : 'A' + (n - 10);
+		};
+
+	std::stringstream ss;
+	ss << "PCI\\VEN_";
+
+	// Generate 4-digit Vendor ID
+	for (int i = 0; i < 4; ++i) {
+		ss << hexChar(hexDist(gen));
+	}
+	ss << "&DEV_";
+
+	// Generate 4-digit Device ID
+	for (int i = 0; i < 4; ++i) {
+		ss << hexChar(hexDist(gen));
+	}
+	ss << "&SUBSYS_";
+
+	// Generate 8-digit Subsystem ID
+	for (int i = 0; i < 8; ++i) {
+		ss << hexChar(hexDist(gen));
+	}
+	ss << "&REV_";
+
+	// Generate 2-digit Revision ID
+	for (int i = 0; i < 2; ++i) {
+		ss << hexChar(hexDist(gen));
+	}
+
+	std::string hwid = ss.str();
+	// Cap length at 50 characters to prevent registry issues
+	if (hwid.length() > 50) {
+		hwid = hwid.substr(0, 50);
+	}
+	return hwid;
+}
+
+// Function to find the registry path for the first display adapter
+bool FindGPURegistryPath(std::wstring& registryPath, std::string& deviceID) {
+	// GUID for display adapters
+	const GUID displayGUID = { 0x4d36e968, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
+
+	// Get device information set for display adapters
+	HDEVINFO deviceInfoSet = SetupDiGetClassDevs(&displayGUID, NULL, NULL, DIGCF_PRESENT);
+	if (deviceInfoSet == INVALID_HANDLE_VALUE) {
+		return false;
+	}
+
+	SP_DEVINFO_DATA deviceInfoData;
+	deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+	// Enumerate devices
+	for (DWORD i = 0; SetupDiEnumDeviceInfo(deviceInfoSet, i, &deviceInfoData); ++i) {
+		// Get device ID
+		wchar_t deviceIDBuffer[256];
+		if (CM_Get_Device_IDW(deviceInfoData.DevInst, deviceIDBuffer, sizeof(deviceIDBuffer) / sizeof(wchar_t), 0) == CR_SUCCESS) {
+			// Convert device ID to string
+			deviceID = std::string(deviceIDBuffer, deviceIDBuffer + wcslen(deviceIDBuffer));
+
+			// Construct registry path
+			registryPath = L"SYSTEM\\CurrentControlSet\\Enum\\" + std::wstring(deviceIDBuffer);
+			SetupDiDestroyDeviceInfoList(deviceInfoSet);
+			return true; // Return first valid GPU
+		}
+	}
+
+	SetupDiDestroyDeviceInfoList(deviceInfoSet);
+	return false; // No GPU found
+}
+
+// Function to spoof GPU HWID in the registry
+bool SpoofGPU(const std::wstring& registryPath, const std::string& newHardwareID) {
+	HKEY hKey;
+
+	// Open registry key with write access
+	LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, registryPath.c_str(), 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
+	if (result != ERROR_SUCCESS) {
+		return false; // Failed to open key
+	}
+
+	// Prepare values
+	const wchar_t* classGUID = L"{4d36e968-e325-11ce-bfc1-08002be10318}";
+	const wchar_t* className = L"Display";
+	const wchar_t* driver = L"pci.sys";
+	DWORD configFlags = 0x00000000;
+	std::wstring wideNewHardwareID(newHardwareID.begin(), newHardwareID.end());
+
+	// Set HardwareID
+	result = RegSetValueExW(hKey, L"HardwareID", 0, REG_SZ,
+		(const BYTE*)wideNewHardwareID.c_str(),
+		(wideNewHardwareID.size() + 1) * sizeof(wchar_t));
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	// Set CompatibleIDs (as multi-string)
+	result = RegSetValueExW(hKey, L"CompatibleIDs", 0, REG_MULTI_SZ,
+		(const BYTE*)wideNewHardwareID.c_str(),
+		(wideNewHardwareID.size() + 2) * sizeof(wchar_t)); // +2 for double null-termination
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	// Set Driver
+	result = RegSetValueExW(hKey, L"Driver", 0, REG_SZ,
+		(const BYTE*)driver,
+		(wcslen(driver) + 1) * sizeof(wchar_t));
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	// Set ConfigFlags
+	result = RegSetValueExW(hKey, L"ConfigFlags", 0, REG_DWORD,
+		(const BYTE*)&configFlags, sizeof(DWORD));
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	// Set ClassGUID
+	result = RegSetValueExW(hKey, L"ClassGUID", 0, REG_SZ,
+		(const BYTE*)classGUID,
+		(wcslen(classGUID) + 1) * sizeof(wchar_t));
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	// Set Class
+	result = RegSetValueExW(hKey, L"Class", 0, REG_SZ,
+		(const BYTE*)className,
+		(wcslen(className) + 1) * sizeof(wchar_t));
+	if (result != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return false;
+	}
+
+	RegCloseKey(hKey);
+	return true;
+}
+
+// Function to get current HWID from registry
+std::string GetCurrentHWID(const std::wstring& registryPath) {
+	HKEY hKey;
+	std::string hwid = "Unknown";
+
+	LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, registryPath.c_str(), 0, KEY_QUERY_VALUE, &hKey);
+	if (result == ERROR_SUCCESS) {
+		wchar_t buffer[256];
+		DWORD bufferSize = sizeof(buffer);
+		DWORD type;
+		result = RegQueryValueExW(hKey, L"HardwareID", 0, &type, (BYTE*)buffer, &bufferSize);
+		if (result == ERROR_SUCCESS && type == REG_SZ) {
+			hwid = std::string(buffer, buffer + bufferSize / sizeof(wchar_t) - 1);
+		}
+		RegCloseKey(hKey);
+	}
+	return hwid;
+}
+
+// Variables for ImGui
+std::wstring registryPath;
+std::string deviceID;
+bool gpuFound = FindGPURegistryPath(registryPath, deviceID);
+std::string currentHWID = gpuFound ? GetCurrentHWID(registryPath) : "No GPU found";
+std::string newHWID = GenerateRandomHWID(); // Auto-generate HWID on startup
+std::string appliedHWID = ""; // Store HWID after applying
+bool showMessage = false;
+std::string message;
+
+
+//ImGui UI
+	ImGui::Text("Current GPU HWID: %s", currentHWID.c_str());
+
+		// Button to generate new HWID
+		if (ImGui::Button("Generate New HWID")) {
+			newHWID = GenerateRandomHWID(); // Generate new random HWID
+		}
+		ImGui::Text("Generated HWID: %s", newHWID.c_str());
+
+		// Button to spoof HWID
+		if (ImGui::Button("Spoof HWID")) {
+			if (!gpuFound) {
+				message = "No GPU found. Cannot spoof HWID.";
+				showMessage = true;
+				appliedHWID = "";
+			}
+			else if (SpoofGPU(registryPath, newHWID)) {
+				message = "Registry HWID spoofed!";
+				currentHWID = GetCurrentHWID(registryPath); // Refresh current HWID
+				appliedHWID = currentHWID; // Store applied HWID
+			}
+			else {
+				message = "Failed to spoof HWID. Ensure admin privileges.";
+				appliedHWID = "";
+			}
+			showMessage = true;
+		}
