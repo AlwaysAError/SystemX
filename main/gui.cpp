@@ -14,17 +14,17 @@
 #include <tlhelp32.h>
 #include <iostream>
 #include <shlobj.h>
-#include <cstdlib> // For system()
+#include <cstdlib>
 #include <setupapi.h>
 #include <cfgmgr32.h>
 #include <iomanip>
 #include <random>
 #include <sstream>
 #include <psapi.h>
-#include <powrprof.h> // For battery information
-#include <timezoneapi.h> // For GetTimeZoneInformation
-#include <oleauto.h> // For SafeArray functions
-#include <rpc.h> // For RPC_S_ALREADY_INITIALIZED
+#include <powrprof.h>
+#include <timezoneapi.h>
+#include <oleauto.h>
+#include <rpc.h>
 
 
 
@@ -36,7 +36,7 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "opengl32.lib")
-#pragma comment(lib, "advapi32.lib") // For registry functions
+#pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "Setupapi.lib")
 #pragma comment(lib, "powrprof.lib")
 
@@ -62,13 +62,93 @@ void RunNetworkReset() {
 
 	// Execute each command
 	for (const auto& cmd : commands) {
-		// system() returns 0 on success, non-zero on failure
 		int result = system(cmd);
 		if (result != 0) {
-			// Handle error (e.g., log to console or show in UI)
-			// For simplicity, we continue with other commands
 		}
 	}
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------------------------------------------
+//PC Name Spoofer
+//-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+// Function to generate a random 10-character string (letters and numbers)
+std::string GenerateRandomString() {
+	const std::string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(0, characters.length() - 1);
+
+	std::string result;
+	for (int i = 0; i < 10; ++i) {
+		result += characters[dis(gen)];
+	}
+	return result;
+}
+
+// Function to set registry values
+bool SetRegistryValues(const std::string& randomName) {
+	HKEY hKey;
+	LONG result;
+	const wchar_t* wRandomName = std::wstring(randomName.begin(), randomName.end()).c_str();
+
+	// Open and set SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName
+	result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ComputerName", 0, KEY_SET_VALUE, &hKey);
+	if (result != ERROR_SUCCESS) {
+		return false;
+	}
+	RegSetValueExW(hKey, L"ComputerName", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegSetValueExW(hKey, L"ActiveComputerName", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegSetValueExW(hKey, L"ComputerNamePhysicalDnsDomain", 0, REG_SZ, (const BYTE*)L"", sizeof(L""));
+	RegCloseKey(hKey);
+
+	// Open and set SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName
+	result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName", 0, KEY_SET_VALUE, &hKey);
+	if (result != ERROR_SUCCESS) {
+		return false;
+	}
+	RegSetValueExW(hKey, L"ComputerName", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegSetValueExW(hKey, L"ActiveComputerName", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegSetValueExW(hKey, L"ComputerNamePhysicalDnsDomain", 0, REG_SZ, (const BYTE*)L"", sizeof(L""));
+	RegCloseKey(hKey);
+
+	// Open and set SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters
+	result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", 0, KEY_SET_VALUE, &hKey);
+	if (result != ERROR_SUCCESS) {
+		return false;
+	}
+	RegSetValueExW(hKey, L"Hostname", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegSetValueExW(hKey, L"NV Hostname", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+	RegCloseKey(hKey);
+
+	// Open SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces
+	result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces", 0, KEY_ALL_ACCESS, &hKey);
+	if (result != ERROR_SUCCESS) {
+		return false;
+	}
+
+	// Enumerate subkeys
+	DWORD index = 0;
+	wchar_t subKeyName[256];
+	DWORD subKeyNameSize = 256;
+	while (RegEnumKeyExW(hKey, index, subKeyName, &subKeyNameSize, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) {
+		HKEY hSubKey;
+		result = RegOpenKeyExW(hKey, subKeyName, 0, KEY_SET_VALUE, &hSubKey);
+		if (result == ERROR_SUCCESS) {
+			RegSetValueExW(hSubKey, L"Hostname", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+			RegSetValueExW(hSubKey, L"NV Hostname", 0, REG_SZ, (const BYTE*)wRandomName, (wcslen(wRandomName) + 1) * sizeof(wchar_t));
+			RegCloseKey(hSubKey);
+		}
+		subKeyNameSize = 256;
+		index++;
+	}
+	RegCloseKey(hKey);
+
+	return true;
 }
 
 
@@ -124,194 +204,6 @@ std::wstring SetMachineGuid(const std::wstring& newGuid) {
 
 std::wstring currentGuid = GetMachineGuid();
 std::wstring statusMessage = L"Ready";
-
-
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-//GPU HWID Changer
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-// Function to generate a random HWID in PCI format
-std::string GenerateRandomHWID() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> hexDist(0, 15); // For hexadecimal digits (0-F)
-
-	auto hexChar = [](int n) -> char {
-		return n < 10 ? '0' + n : 'A' + (n - 10);
-		};
-
-	std::stringstream ss;
-	ss << "PCI\\VEN_";
-
-	// Generate 4-digit Vendor ID
-	for (int i = 0; i < 4; ++i) {
-		ss << hexChar(hexDist(gen));
-	}
-	ss << "&DEV_";
-
-	// Generate 4-digit Device ID
-	for (int i = 0; i < 4; ++i) {
-		ss << hexChar(hexDist(gen));
-	}
-	ss << "&SUBSYS_";
-
-	// Generate 8-digit Subsystem ID
-	for (int i = 0; i < 8; ++i) {
-		ss << hexChar(hexDist(gen));
-	}
-	ss << "&REV_";
-
-	// Generate 2-digit Revision ID
-	for (int i = 0; i < 2; ++i) {
-		ss << hexChar(hexDist(gen));
-	}
-
-	std::string hwid = ss.str();
-	// Cap length at 50 characters to prevent registry issues
-	if (hwid.length() > 50) {
-		hwid = hwid.substr(0, 50);
-	}
-	return hwid;
-}
-
-// Function to find the registry path for the first display adapter
-bool FindGPURegistryPath(std::wstring& registryPath, std::string& deviceID) {
-	// GUID for display adapters
-	const GUID displayGUID = { 0x4d36e968, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
-
-	// Get device information set for display adapters
-	HDEVINFO deviceInfoSet = SetupDiGetClassDevs(&displayGUID, NULL, NULL, DIGCF_PRESENT);
-	if (deviceInfoSet == INVALID_HANDLE_VALUE) {
-		return false;
-	}
-
-	SP_DEVINFO_DATA deviceInfoData;
-	deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-	// Enumerate devices
-	for (DWORD i = 0; SetupDiEnumDeviceInfo(deviceInfoSet, i, &deviceInfoData); ++i) {
-		// Get device ID
-		wchar_t deviceIDBuffer[256];
-		if (CM_Get_Device_IDW(deviceInfoData.DevInst, deviceIDBuffer, sizeof(deviceIDBuffer) / sizeof(wchar_t), 0) == CR_SUCCESS) {
-			// Convert device ID to string
-			deviceID = std::string(deviceIDBuffer, deviceIDBuffer + wcslen(deviceIDBuffer));
-
-			// Construct registry path
-			registryPath = L"SYSTEM\\CurrentControlSet\\Enum\\" + std::wstring(deviceIDBuffer);
-			SetupDiDestroyDeviceInfoList(deviceInfoSet);
-			return true; // Return first valid GPU
-		}
-	}
-
-	SetupDiDestroyDeviceInfoList(deviceInfoSet);
-	return false; // No GPU found
-}
-
-// Function to spoof GPU HWID in the registry
-bool SpoofGPU(const std::wstring& registryPath, const std::string& newHardwareID) {
-	HKEY hKey;
-
-	// Open registry key with write access
-	LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, registryPath.c_str(), 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &hKey);
-	if (result != ERROR_SUCCESS) {
-		return false; // Failed to open key
-	}
-
-	// Prepare values
-	const wchar_t* classGUID = L"{4d36e968-e325-11ce-bfc1-08002be10318}";
-	const wchar_t* className = L"Display";
-	const wchar_t* driver = L"pci.sys";
-	DWORD configFlags = 0x00000000;
-	std::wstring wideNewHardwareID(newHardwareID.begin(), newHardwareID.end());
-
-	// Set HardwareID
-	result = RegSetValueExW(hKey, L"HardwareID", 0, REG_SZ,
-		(const BYTE*)wideNewHardwareID.c_str(),
-		(wideNewHardwareID.size() + 1) * sizeof(wchar_t));
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	// Set CompatibleIDs (as multi-string)
-	result = RegSetValueExW(hKey, L"CompatibleIDs", 0, REG_MULTI_SZ,
-		(const BYTE*)wideNewHardwareID.c_str(),
-		(wideNewHardwareID.size() + 2) * sizeof(wchar_t)); // +2 for double null-termination
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	// Set Driver
-	result = RegSetValueExW(hKey, L"Driver", 0, REG_SZ,
-		(const BYTE*)driver,
-		(wcslen(driver) + 1) * sizeof(wchar_t));
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	// Set ConfigFlags
-	result = RegSetValueExW(hKey, L"ConfigFlags", 0, REG_DWORD,
-		(const BYTE*)&configFlags, sizeof(DWORD));
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	// Set ClassGUID
-	result = RegSetValueExW(hKey, L"ClassGUID", 0, REG_SZ,
-		(const BYTE*)classGUID,
-		(wcslen(classGUID) + 1) * sizeof(wchar_t));
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	// Set Class
-	result = RegSetValueExW(hKey, L"Class", 0, REG_SZ,
-		(const BYTE*)className,
-		(wcslen(className) + 1) * sizeof(wchar_t));
-	if (result != ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		return false;
-	}
-
-	RegCloseKey(hKey);
-	return true;
-}
-
-// Function to get current HWID from registry
-std::string GetCurrentHWID(const std::wstring& registryPath) {
-	HKEY hKey;
-	std::string hwid = "Unknown";
-
-	LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, registryPath.c_str(), 0, KEY_QUERY_VALUE, &hKey);
-	if (result == ERROR_SUCCESS) {
-		wchar_t buffer[256];
-		DWORD bufferSize = sizeof(buffer);
-		DWORD type;
-		result = RegQueryValueExW(hKey, L"HardwareID", 0, &type, (BYTE*)buffer, &bufferSize);
-		if (result == ERROR_SUCCESS && type == REG_SZ) {
-			hwid = std::string(buffer, buffer + bufferSize / sizeof(wchar_t) - 1);
-		}
-		RegCloseKey(hKey);
-	}
-	return hwid;
-}
-
-// Variables for ImGui
-std::wstring registryPath;
-std::string deviceID;
-bool gpuFound = FindGPURegistryPath(registryPath, deviceID);
-std::string currentHWID = gpuFound ? GetCurrentHWID(registryPath) : "No GPU found";
-std::string newHWID = GenerateRandomHWID(); // Auto-generate HWID on startup
-std::string appliedHWID = ""; // Store HWID after applying
-bool showMessage = false;
-std::string message;
 
 
 
@@ -575,7 +467,7 @@ void gui::Render() noexcept
 
 
 	// ImGui pop-up logic
-	static bool show_popuprizz = true; // Show on startup
+	static bool show_popuprizz = true; 
 	if (show_popuprizz) {
 		ImGui::OpenPopup("WARNING");
 	}
@@ -599,9 +491,8 @@ void gui::Render() noexcept
 
 
 
-	// Rest of your tabbed interface (unchanged)
 	if (ImGui::BeginTabBar("MainTabBar")) {
-		// ... (your existing tab code remains unchanged)
+		
 	}
 
 
@@ -615,14 +506,14 @@ void gui::Render() noexcept
 	}
 
 	//Spoofing Tab
-	if (ImGui::BeginTabItem("Spoofing")) {
+	if (ImGui::BeginTabItem("System Info Changer")) {
 		ImGui::Text("   ");
 
 
 		if (ImGui::Button("Spoof MachineGuid")) {
 			std::wstring newGuid = GenerateRandomGUID();
 			statusMessage = SetMachineGuid(newGuid);
-			currentGuid = GetMachineGuid(); // Refresh displayed GUID
+			currentGuid = GetMachineGuid(); 
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
 		ImGui::Separator();
@@ -634,32 +525,25 @@ void gui::Render() noexcept
 		ImGui::Text("After pressing the Clean IP and DNS button please wait 10 seconds and ignore any CMD pop ups");
 		ImGui::Separator();
 
+		// PC Name spoofer stuff
+		static std::string randomString;
+		static char displayText[11] = ""; 
+		static bool showMessage = false;
+		static bool success = false;
 
-		ImGui::Text("Current GPU HWID: %s", currentHWID.c_str());
-
-		// Button to generate new HWID
-		if (ImGui::Button("Generate New HWID")) {
-			newHWID = GenerateRandomHWID(); // Generate new random HWID
+		if (ImGui::Button("Generate Random Name")) {
+			randomString = GenerateRandomString();
+			strncpy_s(displayText, randomString.c_str(), sizeof(displayText));
+			showMessage = false;
 		}
-		ImGui::Text("Generated HWID: %s", newHWID.c_str());
 
-		// Button to spoof HWID
-		if (ImGui::Button("Spoof HWID")) {
-			if (!gpuFound) {
-				message = "No GPU found. Cannot spoof HWID.";
+		ImGui::InputText("Generated Name", displayText, sizeof(displayText), ImGuiInputTextFlags_ReadOnly);
+
+		if (ImGui::Button("Spoof PC Name")) {
+			if (!randomString.empty()) {
+				success = SetRegistryValues(randomString);
 				showMessage = true;
-				appliedHWID = "";
 			}
-			else if (SpoofGPU(registryPath, newHWID)) {
-				message = "Registry HWID spoofed!";
-				currentHWID = GetCurrentHWID(registryPath); // Refresh current HWID
-				appliedHWID = currentHWID; // Store applied HWID
-			}
-			else {
-				message = "Failed to spoof HWID. Ensure admin privileges.";
-				appliedHWID = "";
-			}
-			showMessage = true;
 		}
 
 		ImGui::Separator();
