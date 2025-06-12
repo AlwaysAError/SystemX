@@ -14,17 +14,17 @@
 #include <tlhelp32.h>
 #include <iostream>
 #include <shlobj.h>
-#include <cstdlib> // For system()
+#include <cstdlib>
 #include <setupapi.h>
 #include <cfgmgr32.h>
 #include <iomanip>
 #include <random>
 #include <sstream>
 #include <psapi.h>
-#include <powrprof.h> // For battery information
-#include <timezoneapi.h> // For GetTimeZoneInformation
-#include <oleauto.h> // For SafeArray functions
-#include <rpc.h> // For RPC_S_ALREADY_INITIALIZED
+#include <powrprof.h>
+#include <timezoneapi.h>
+#include <oleauto.h>
+#include <rpc.h>
 
 
 
@@ -36,7 +36,7 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "opengl32.lib")
-#pragma comment(lib, "advapi32.lib") // For registry functions
+#pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "Setupapi.lib")
 #pragma comment(lib, "powrprof.lib")
 
@@ -62,11 +62,8 @@ void RunNetworkReset() {
 
 	// Execute each command
 	for (const auto& cmd : commands) {
-		// system() returns 0 on success, non-zero on failure
 		int result = system(cmd);
 		if (result != 0) {
-			// Handle error (e.g., log to console or show in UI)
-			// For simplicity, we continue with other commands
 		}
 	}
 }
@@ -470,7 +467,7 @@ void gui::Render() noexcept
 
 
 	// ImGui pop-up logic
-	static bool show_popuprizz = true; // Show on startup
+	static bool show_popuprizz = true; 
 	if (show_popuprizz) {
 		ImGui::OpenPopup("WARNING");
 	}
@@ -494,9 +491,8 @@ void gui::Render() noexcept
 
 
 
-	// Rest of your tabbed interface (unchanged)
 	if (ImGui::BeginTabBar("MainTabBar")) {
-		// ... (your existing tab code remains unchanged)
+		
 	}
 
 
@@ -517,7 +513,7 @@ void gui::Render() noexcept
 		if (ImGui::Button("Spoof MachineGuid")) {
 			std::wstring newGuid = GenerateRandomGUID();
 			statusMessage = SetMachineGuid(newGuid);
-			currentGuid = GetMachineGuid(); // Refresh displayed GUID
+			currentGuid = GetMachineGuid(); 
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
 		ImGui::Separator();
@@ -531,7 +527,7 @@ void gui::Render() noexcept
 
 		// PC Name spoofer stuff
 		static std::string randomString;
-		static char displayText[11] = ""; // Buffer for displaying text
+		static char displayText[11] = ""; 
 		static bool showMessage = false;
 		static bool success = false;
 
