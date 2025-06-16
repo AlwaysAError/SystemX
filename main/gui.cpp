@@ -25,6 +25,7 @@
 #include <timezoneapi.h>
 #include <oleauto.h>
 #include <rpc.h>
+#include <intrin.h>
 
 
 
@@ -39,6 +40,7 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "Setupapi.lib")
 #pragma comment(lib, "powrprof.lib")
+#pragma comment(lib, "kernel32.lib")
 
 
 
@@ -467,7 +469,7 @@ void gui::Render() noexcept
 
 
 	// ImGui pop-up logic
-	static bool show_popuprizz = true; 
+	static bool show_popuprizz = true;
 	if (show_popuprizz) {
 		ImGui::OpenPopup("WARNING");
 	}
@@ -492,7 +494,7 @@ void gui::Render() noexcept
 
 
 	if (ImGui::BeginTabBar("MainTabBar")) {
-		
+
 	}
 
 
@@ -502,6 +504,13 @@ void gui::Render() noexcept
 		ImGui::Text("Hey there, thanks for using System X. System X was created by https://github.com/AlwaysAError to help manage your system");
 		ImGui::Text("If you encounter any bugs or have any ideas please leave them on the GitHub page");
 
+
+
+		ImGui::Separator();
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("-------------------------------------------------------------------------------------------------------------------------------------------");
 		ImGui::EndTabItem();
 	}
 
@@ -513,7 +522,7 @@ void gui::Render() noexcept
 		if (ImGui::Button("Spoof MachineGuid")) {
 			std::wstring newGuid = GenerateRandomGUID();
 			statusMessage = SetMachineGuid(newGuid);
-			currentGuid = GetMachineGuid(); 
+			currentGuid = GetMachineGuid();
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
 		ImGui::Separator();
@@ -527,7 +536,7 @@ void gui::Render() noexcept
 
 		// PC Name spoofer stuff
 		static std::string randomString;
-		static char displayText[11] = ""; 
+		static char displayText[11] = "";
 		static bool showMessage = false;
 		static bool success = false;
 
@@ -546,8 +555,37 @@ void gui::Render() noexcept
 			}
 		}
 
-		ImGui::Separator();
 
+
+		ImGui::Separator();
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("-------------------------------------------------------------------------------------------------------------------------------------------");
+		ImGui::EndTabItem();
+	}
+
+	//System Info Tab
+	if (ImGui::BeginTabItem("System Info")) {
+		ImGui::Text("   ");
+	
+
+
+		ImGui::Separator();
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("-------------------------------------------------------------------------------------------------------------------------------------------");
+		ImGui::EndTabItem();
+	}
+
+	//Settings
+	if (ImGui::BeginTabItem("Settings")) {
+		ImGui::Text("   ");
+
+
+
+		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
 		ImGui::Text("   ");
