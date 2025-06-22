@@ -60,6 +60,9 @@ void RunNetworkReset() {
 		"ipconfig /flushdns",
 		"ipconfig /release",
 		"ipconfig /renew"
+		"netsh interface ip delete arpcache"
+		"nbtstat -R"
+
 	};
 
 	// Execute each command
@@ -515,7 +518,7 @@ void gui::Render() noexcept
 	}
 
 	//Spoofing Tab
-	if (ImGui::BeginTabItem("System Info Changer")) {
+	if (ImGui::BeginTabItem("HWID Changing")) {
 		ImGui::Text("   ");
 
 
@@ -556,6 +559,18 @@ void gui::Render() noexcept
 		}
 
 
+
+		ImGui::Separator();
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("-------------------------------------------------------------------------------------------------------------------------------------------");
+		ImGui::EndTabItem();
+	}
+
+	//Spoofing Tab
+	if (ImGui::BeginTabItem("Registry Data Spoofing")) {
+		ImGui::Text("   ");
 
 		ImGui::Separator();
 		ImGui::Text("   ");
