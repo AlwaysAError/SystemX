@@ -44,36 +44,6 @@
 
 
 
-//-------------------------------------------------------------------------------------------------------------------------------------------
-//IP Config And DNS Changer/Fixer
-//-------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-// Function to execute network reset commands
-void RunNetworkReset() {
-	// Array of commands (Windows-specific)
-	const char* commands[] = {
-		"netsh winsock reset",
-		"netsh int ip reset",
-		"netsh advfirewall reset",
-		"ipconfig /flushdns",
-		"ipconfig /release",
-		"ipconfig /renew"
-		"netsh interface ip delete arpcache"
-		"nbtstat -R"
-
-	};
-
-	// Execute each command
-	for (const auto& cmd : commands) {
-		int result = system(cmd);
-		if (result != 0) {
-		}
-	}
-}
-
-
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
 //PC Name Spoofer
@@ -154,6 +124,105 @@ bool SetRegistryValues(const std::string& randomName) {
 	RegCloseKey(hKey);
 
 	return true;
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------------------------------------------
+//Network tab functions
+//-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+// Function to execute network reset commands
+void IPRESET() {
+	const char* commands[] = {
+		"netsh int ip reset",
+		"ipconfig /release",
+		"ipconfig /renew"
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+// Function to execute network reset commands
+void cleandns() {
+	const char* commands[] = {
+		 "ipconfig /flushdns",
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+// Function to execute network reset commands
+void Firewallfix() {
+	const char* commands[] = {
+		 "netsh winsock reset",
+		 "netsh advfirewall reset",
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+// Function to execute network reset commands
+void windowsiptracker() {
+	const char* commands[] = {
+		 "netsh winsock reset",
+		 "netsh advfirewall reset",
+		 "net stop winmgmt /y",
+		 "net start winmgmt /y",
+		 "sc stop winmgmt",
+		 "sc start winmgmt",
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+// Function to execute network reset commands
+void fullnetworkspoof() {
+	const char* commands[] = {
+		 "netsh winsock reset",
+		 "netsh advfirewall reset",
+		 "net stop winmgmt /y",
+		 "net start winmgmt /y",
+		 "sc stop winmgmt",
+		 "sc start winmgmt",
+		 "netsh winsock reset",
+		 "netsh advfirewall reset",
+		 "netsh int ip reset",
+	     "ipconfig /flushdns",
+		 "ipconfig /release",
+		 "ipconfig /renew"
+		 "netsh interface ip delete arpcache"
+		 "nbtstat -R"
+		 
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
 }
 
 
@@ -517,7 +586,7 @@ void gui::Render() noexcept
 		ImGui::EndTabItem();
 	}
 
-	//Spoofing Tab
+	//HWID CHanging
 	if (ImGui::BeginTabItem("HWID Changing")) {
 		ImGui::Text("   ");
 
@@ -528,14 +597,18 @@ void gui::Render() noexcept
 			currentGuid = GetMachineGuid();
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
-		ImGui::Separator();
 
-		// Button to trigger network reset
-		if (ImGui::Button("Clean IP and DNS")) {
-			RunNetworkReset();
-		}
-		ImGui::Text("After pressing the Clean IP and DNS button please wait 10 seconds and ignore any CMD pop ups");
 		ImGui::Separator();
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("   ");
+		ImGui::Text("-------------------------------------------------------------------------------------------------------------------------------------------");
+		ImGui::EndTabItem();
+	}
+
+	//Registry Data Spoofing
+	if (ImGui::BeginTabItem("Registry Data Spoofing")) {
+		ImGui::Text("   ");
 
 		// PC Name spoofer stuff
 		static std::string randomString;
@@ -558,8 +631,6 @@ void gui::Render() noexcept
 			}
 		}
 
-
-
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -568,9 +639,35 @@ void gui::Render() noexcept
 		ImGui::EndTabItem();
 	}
 
-	//Spoofing Tab
-	if (ImGui::BeginTabItem("Registry Data Spoofing")) {
+	//Network Tab
+	if (ImGui::BeginTabItem("Network")) {
 		ImGui::Text("   ");
+
+		// Button to trigger network reset
+		if (ImGui::Button("Request A New IP Address From Your Router")) {
+			IPRESET();
+		}
+		ImGui::Text("may not work depending on your internet provider");
+
+		// Button to trigger network reset
+		if (ImGui::Button("Clean DNS")) {
+			cleandns();
+		}
+
+		// Button to trigger network reset
+		if (ImGui::Button("Reset Windows Firewall")) {
+			Firewallfix();
+		}
+
+		// Button to trigger network reset
+		if (ImGui::Button("Crash Windows IP Tracking")) {
+			windowsiptracker();
+		}
+
+		// Button to trigger network reset
+		if (ImGui::Button("Full Network Spoof")) {
+			fullnetworkspoof();
+		}
 
 		ImGui::Separator();
 		ImGui::Text("   ");
