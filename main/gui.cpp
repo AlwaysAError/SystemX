@@ -16,6 +16,7 @@
 #include <shlobj.h>
 #include <cstdlib>
 #include <setupapi.h>
+#include <array>
 #include <cfgmgr32.h>
 #include <iomanip>
 #include <random>
@@ -125,6 +126,74 @@ bool SetRegistryValues(const std::string& randomName) {
 
 	return true;
 }
+
+
+
+//-------------------------------------------------------------------------------------------------------------------------------------------
+//Function to take file permissions
+//-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+// Function to execute a command in CMD and return the output
+std::string ExecuteCommand(const std::string& command) {
+	std::string result;
+	std::string cmd = "cmd.exe /C " + command;
+
+	STARTUPINFOA si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+	SECURITY_ATTRIBUTES sa = { sizeof(sa), nullptr, TRUE };
+
+	HANDLE read_pipe, write_pipe;
+	if (!CreatePipe(&read_pipe, &write_pipe, &sa, 0)) {
+		return "Error: Failed to create pipe.";
+	}
+
+	si.dwFlags = STARTF_USESTDHANDLES;
+	si.hStdOutput = write_pipe;
+	si.hStdError = write_pipe;
+
+	if (CreateProcessA(nullptr, (LPSTR)cmd.c_str(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
+		CloseHandle(write_pipe);
+
+		std::vector<char> buffer(1024);
+		DWORD bytes_read;
+		while (ReadFile(read_pipe, buffer.data(), buffer.size() - 1, &bytes_read, nullptr) && bytes_read > 0) {
+			buffer[bytes_read] = '\0';
+			result += buffer.data();
+		}
+
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	else {
+		result = "Error: Failed to execute command.";
+	}
+
+	CloseHandle(read_pipe);
+	return result;
+}
+
+// Function to grant full permissions to the current user for a given path
+std::string GrantPermissions(const std::string& path) {
+	char username[256];
+	DWORD username_len = sizeof(username);
+	if (!GetUserNameA(username, &username_len)) {
+		return "Error: Failed to get username.";
+	}
+
+	std::string takeown_command = "takeown /F \"" + path + "\" /R /D Y";
+	std::string icacls_command = "icacls \"" + path + "\" /grant \"" + username + ":F\" /T";
+
+	std::string takeown_result = ExecuteCommand(takeown_command);
+	std::string icacls_result = ExecuteCommand(icacls_command);
+
+	return "Takeown Result:\n" + takeown_result + "\nICACLS Result:\n" + icacls_result;
+}
+
+static char path_buffer[512] = "";
+static std::string result_message = "";
 
 
 
@@ -660,7 +729,7 @@ void gui::Render() noexcept
 		}
 
 		// Button to trigger network reset
-		if (ImGui::Button("Crash Windows IP Tracking")) {
+		if (ImGui::Button("Restart Windows IP Tracking")) {
 			windowsiptracker();
 		}
 
@@ -695,6 +764,24 @@ void gui::Render() noexcept
 	if (ImGui::BeginTabItem("Settings")) {
 		ImGui::Text("   ");
 
+		ImGui::Text("File Permission Enforcer (forces you full permission of any file)");
+		ImGui::Text("System X may freeze for a minute or two while it changes the file permissions and logs it's actions");
+		ImGui::Text("Enter the file or folder path:");
+		ImGui::InputText("##Path", path_buffer, sizeof(path_buffer));
+
+		if (ImGui::Button("Grant Full Permissions")) {
+			if (strlen(path_buffer) > 0) {
+				std::string path = path_buffer;
+				path.erase(path.find_last_not_of(" \n\r\t") + 1);
+
+				result_message = GrantPermissions(path);
+			}
+			else {
+				result_message = "Error: Please enter a valid path.";
+			}
+		}
+
+		ImGui::TextWrapped("Result:\n%s", result_message.c_str());
 
 
 		ImGui::Separator();
