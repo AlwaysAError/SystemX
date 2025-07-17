@@ -27,11 +27,11 @@
 #include <oleauto.h>
 #include <rpc.h>
 #include <intrin.h>
+#include <fstream>
 
 
 
 #define _WIN32_WINNT 0x0600 // Ensure Windows Vista or later APIs
-
 
 
 // Link necessary libraries
@@ -270,12 +270,10 @@ void windowsiptracker() {
 // Function to execute network reset commands
 void fullnetworkspoof() {
 	const char* commands[] = {
+		 "sc stop winmgmt",
+		 "net stop winmgmt /y",
 		 "netsh winsock reset",
 		 "netsh advfirewall reset",
-		 "net stop winmgmt /y",
-		 "net start winmgmt /y",
-		 "sc stop winmgmt",
-		 "sc start winmgmt",
 		 "netsh winsock reset",
 		 "netsh advfirewall reset",
 		 "netsh int ip reset",
@@ -283,7 +281,9 @@ void fullnetworkspoof() {
 		 "ipconfig /release",
 		 "ipconfig /renew"
 		 "netsh interface ip delete arpcache"
-		 "nbtstat -R"
+	     "nbtstat -R"
+		 "net start winmgmt /y",
+         "sc start winmgmt",
 		 
 	};
 
@@ -749,7 +749,7 @@ void gui::Render() noexcept
 	//System Info Tab
 	if (ImGui::BeginTabItem("System Info")) {
 		ImGui::Text("   ");
-	
+
 
 
 		ImGui::Separator();
