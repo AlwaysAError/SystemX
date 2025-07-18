@@ -203,6 +203,44 @@ static std::string result_message = "";
 
 
 
+//Function to disable Windows info tracking
+void antiwindowstracker() {
+	const char* commands[] = {
+		"sc stop winmgmt",
+		"net stop winmgmt /y",
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+// Function to enable Windows info tracking
+void truewindowstracker() {
+	const char* commands[] = {
+		"net start winmgmt /y",
+		"sc start winmgmt",
+
+	};
+
+	for (const auto& cmd : commands) {
+		int result = system(cmd);
+		if (result != 0) {
+		}
+	}
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------------------------------------------
+//Network tab functions
+//-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 // Function to execute network reset commands
 void IPRESET() {
 	const char* commands[] = {
@@ -647,6 +685,7 @@ void gui::Render() noexcept
 
 
 
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -667,6 +706,9 @@ void gui::Render() noexcept
 		}
 		ImGui::Text("Current MachineGuid: %ls", currentGuid.c_str());
 
+
+
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -691,7 +733,7 @@ void gui::Render() noexcept
 			showMessage = false;
 		}
 
-		ImGui::InputText("Generated Name", displayText, sizeof(displayText), ImGuiInputTextFlags_ReadOnly);
+		ImGui::InputText("    ", displayText, sizeof(displayText));
 
 		if (ImGui::Button("Spoof PC Name")) {
 			if (!randomString.empty()) {
@@ -700,6 +742,9 @@ void gui::Render() noexcept
 			}
 		}
 
+
+
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -712,32 +757,30 @@ void gui::Render() noexcept
 	if (ImGui::BeginTabItem("Network")) {
 		ImGui::Text("   ");
 
-		// Button to trigger network reset
 		if (ImGui::Button("Request A New IP Address From Your Router")) {
 			IPRESET();
 		}
 		ImGui::Text("may not work depending on your internet provider");
 
-		// Button to trigger network reset
 		if (ImGui::Button("Clean DNS")) {
 			cleandns();
 		}
 
-		// Button to trigger network reset
 		if (ImGui::Button("Reset Windows Firewall")) {
 			Firewallfix();
 		}
 
-		// Button to trigger network reset
 		if (ImGui::Button("Restart Windows IP Tracking")) {
 			windowsiptracker();
 		}
 
-		// Button to trigger network reset
 		if (ImGui::Button("Full Network Spoof")) {
 			fullnetworkspoof();
 		}
 
+
+
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -750,8 +793,9 @@ void gui::Render() noexcept
 	if (ImGui::BeginTabItem("System Info")) {
 		ImGui::Text("   ");
 
+	
 
-
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
@@ -762,6 +806,19 @@ void gui::Render() noexcept
 
 	//Settings
 	if (ImGui::BeginTabItem("Settings")) {
+		ImGui::Text("   ");
+
+		ImGui::Text("Warning!!! Disabling Windows Trackers My Flag You As A Cheater To Anti Cheats (Mainly EAC)");
+		if (ImGui::Button("Disable Windows Tracking")) {
+			antiwindowstracker();
+		}
+
+		if (ImGui::Button("Enable Windows Tracking")) {
+			truewindowstracker();
+		}
+
+		ImGui::Text("   ");
+		ImGui::Separator();
 		ImGui::Text("   ");
 
 		ImGui::Text("File Permission Enforcer (forces you full permission of any file)");
@@ -784,6 +841,8 @@ void gui::Render() noexcept
 		ImGui::TextWrapped("Result:\n%s", result_message.c_str());
 
 
+
+		ImGui::Text("   ");
 		ImGui::Separator();
 		ImGui::Text("   ");
 		ImGui::Text("   ");
